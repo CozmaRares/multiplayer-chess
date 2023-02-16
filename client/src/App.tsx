@@ -1,5 +1,7 @@
+import Chessboard from "./Chessboard";
+
 function App() {
-  return <div>Hello world</div>;
+  return <Chessboard />;
 }
 
 export default App;
