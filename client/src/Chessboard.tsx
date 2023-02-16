@@ -14,13 +14,15 @@ import bn from "./assets/pieces/bn.png";
 import bp from "./assets/pieces/bp.png";
 import bq from "./assets/pieces/bq.png";
 import br from "./assets/pieces/br.png";
+import useWindowDimensions from "./hooks/useWindowDimensions";
 
 const SQUARE_COLORS = {
   light: "#ECECD7",
   dark: "#4D6D92"
 };
 
-const DEFAULT_POSITION = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+const DEFAULT_POSITION =
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 const MIN_SIZE = 480;
 const MAX_SIZE = 720;
@@ -38,10 +40,12 @@ const Chessboard: React.FC<{
   onMove?: unknown; // TODO: onMove non optional callback function
 }> = props => {
   const [selectedSquare, setSelectedSquare] = useState(-1);
+  const { windowHeight, windowWidth } = useWindowDimensions();
 
-  const position = (
-    props.fen === undefined ? DEFAULT_POSITION : props.fen.split(" ")[0]
-  )
+  const fen = props.fen ?? DEFAULT_POSITION;
+
+  const position = fen
+    .split(" ")[0]
     .split("/")
     .map(row => {
       const arr: string[] = [];
@@ -54,11 +58,16 @@ const Chessboard: React.FC<{
       return arr;
     });
 
-  const isReversed = props.blackPerspective ? true : false;
+  const isReversed = props.blackPerspective ?? false;
 
   if (isReversed) position.reverse();
 
-  const tileSize = constrain(props.size ?? MAX_SIZE, MIN_SIZE, MAX_SIZE) / 8;
+  const tileSize =
+    constrain(
+      props.size ?? MAX_SIZE,
+      MIN_SIZE,
+      Math.min(MAX_SIZE, windowHeight, windowWidth)
+    ) / 8;
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -70,8 +79,9 @@ const Chessboard: React.FC<{
 
   return (
     <div
-      className="grid grid-cols-8 border-2 border-black w-fit"
+      className="grid grid-cols-8 border-2 border-black w-fit m-1"
       onPointerDown={onPointerDown}
+      key={fen}
     >
       {position.map((row, y) =>
         row.map((symbol, x) => {
@@ -116,15 +126,33 @@ const Tile: React.FC<{
       data-number={props.tileColumn * 8 + props.tileRow}
     >
       <Show when={img != undefined}>
-        <img src={img} className="pointer-events-none" />
+        <img src={img} className="pointer-events-none w-[95%]" />
       </Show>
       <Show when={props.tileColumn == 0}>
-        <span className="absolute top-0.5 left-0.5">
+        <span
+          className="absolute top-0.5 left-0.5 font-bold pointer-events-none"
+          style={{
+            color:
+              isEven(props.tileColumn + props.tileRow) == props.isReversed
+                ? SQUARE_COLORS.light
+                : SQUARE_COLORS.dark,
+            fontSize: `${props.size * 0.2}px`
+          }}
+        >
           {props.isReversed ? props.tileRow + 1 : 8 - props.tileRow}
         </span>
       </Show>
       <Show when={props.tileRow == 7}>
-        <span className="absolute bottom-0.5 right-1">
+        <span
+          className="absolute bottom-0.5 right-1 font-bold pointer-events-none"
+          style={{
+            color:
+              isEven(props.tileColumn + props.tileRow) == props.isReversed
+                ? SQUARE_COLORS.light
+                : SQUARE_COLORS.dark,
+            fontSize: `${props.size * 0.2}px`
+          }}
+        >
           {"abcdefgh".substring(props.tileColumn, props.tileColumn + 1)}
         </span>
       </Show>
@@ -133,7 +161,7 @@ const Tile: React.FC<{
 };
 
 function constrain(value: number, min: number, max: number) {
-  return value < min ? min : value > max ? max : value;
+  return value > max ? max : value < min ? min : value;
 }
 
 function isEven(x: number) {
@@ -142,8 +170,8 @@ function isEven(x: number) {
 
 function selectSquare(
   e: React.PointerEvent,
-  selectedPiece: number,
-  setSelectedPiece: React.Dispatch<React.SetStateAction<number>>
+  selectedSquare: number,
+  setSelectedSquare: React.Dispatch<React.SetStateAction<number>>
 ) {
   const square = e.target as HTMLElement;
 
