@@ -80,6 +80,10 @@ export function toAlgebraic(square: number): Square {
   return ("abcdefgh"[f] + "87654321"[r]) as Square;
 }
 
+export function to0x88(square: Square): number {
+  return ("87654321".indexOf(square[1]) << 4) + "abcdefgh".indexOf(square[0]);
+}
+
 export function getRank(position: number) {
   return position >> 4;
 }

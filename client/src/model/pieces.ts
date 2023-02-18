@@ -29,6 +29,8 @@ export abstract class Piece {
   abstract getMoves(board: GameBoard): Move[];
 }
 
+// for pieces that need only one iteration / offset
+// king and knight
 class OneIter {
   static computeMoves(
     piece: Piece,
@@ -63,13 +65,42 @@ class OneIter {
   }
 }
 
+// same thing but for bishop, rook and queen
 class MultipleIter {
   static computeMoves(
     piece: Piece,
     board: GameBoard,
     offsets: number[]
   ): Move[] {
-    throw new Error("Method not implemented.");
+    const moves: Move[] = [];
+
+    offsets.forEach(offset => {
+      let newPosition = piece.position + offset;
+
+      while (isPositionValid(newPosition)) {
+        if (!board.isSquareEmpty(newPosition)) {
+          const pieceOnSquare = board.getPiece(newPosition);
+
+          if (pieceOnSquare.color != piece.color) {
+            moves.push({
+              square: toAlgebraic(newPosition),
+              flags: FLAGS.CAPTURE
+            });
+          }
+
+          break;
+        }
+
+        moves.push({
+          square: toAlgebraic(newPosition),
+          flags: FLAGS.NORMAL
+        });
+
+        newPosition += offset;
+      }
+    });
+
+    return moves;
   }
 }
 
@@ -152,10 +183,9 @@ export class King extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    return OneIter.computeMoves(this, board, Queen.OFFSETS);
-    // .filter(
-    // ({ square }) =>
-    //   !board.isSquareAttacked(Ox88[square], reverseColor(this.color))
-    // );
+    return OneIter.computeMoves(this, board, Queen.OFFSETS).filter(
+      ({ square }) =>
+        !board.isSquareAttacked(Ox88[square], reverseColor(this.color))
+    );
   }
 }
