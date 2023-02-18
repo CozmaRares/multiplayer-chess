@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import Show from "./components/Show";
 import useWindowDimensions from "./hooks/useWindowDimensions";
-import { DEFAULT_POSITION } from "./model/constants";
+import { DEFAULT_POSITION } from "./model/utils";
 
 import wb from "./assets/pieces/wb.png";
 import wk from "./assets/pieces/wk.png";

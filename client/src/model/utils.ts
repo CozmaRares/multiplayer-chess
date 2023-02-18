@@ -3,12 +3,18 @@ export const BLACK = "b";
 
 export type Color = "w" | "b";
 
+export function reverseColor(color: Color) {
+  return color == WHITE ? BLACK : WHITE;
+}
+
 export const PAWN = "p";
 export const KNIGHT = "n";
 export const BISHOP = "b";
 export const ROOK = "r";
 export const QUEEN = "q";
 export const KING = "k";
+
+export const PROMOTIONS = [KNIGHT, BISHOP, ROOK, QUEEN] as const;
 
 export const PIECE_SYMBOLS = "pnkrqkPNKRQK";
 
@@ -30,26 +36,31 @@ export const SQUARES = [
 
 export type Square = typeof SQUARES[number];
 
-export const FLAGS = {
-  NORMAL: "n",
-  CAPTURE: "c",
-  PAWN_MOVE: "m",
-  PAWN_JUMP: "j",
-  PROMOTION: "p",
-  K_SIDE_CASTLE: "k",
-  Q_SIDE_CASTLE: "q"
-};
+// export const FLAGS = {
+//   CAPTURE: "c",
+//   PAWN_JUMP: "j",
+//   PROMOTION: "p",
+//   K_SIDE_CASTLE: "k",
+//   Q_SIDE_CASTLE: "q"
+// };
 
 // prettier-ignore
-export const FLAG_MASKS = {
-  NORMAL:        0b0000001,
-  CAPTURE:       0b0000010,
-  PAWN_MOVE:     0b0000100,
-  PAWN_JUMP:     0b0001000,
-  PROMOTION:     0b0010000,
-  K_SIDE_CASTLE: 0b0100000,
-  Q_SIDE_CASTLE: 0b1000000
+export const FLAGS = {
+  NORMAL:        0b000001,
+  CAPTURE:       0b000010,
+  PAWN_JUMP:     0b000100,
+  PROMOTION:     0b001000,
+  K_SIDE_CASTLE: 0b010000,
+  Q_SIDE_CASTLE: 0b100000
 };
+
+export type Move = {
+  square: Square;
+  flags: number;
+};
+
+export const DEFAULT_POSITION =
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // prettier-ignore
 export const Ox88: Record<Square, number> = {
@@ -63,16 +74,24 @@ export const Ox88: Record<Square, number> = {
   a1: 0x70, b1: 0x71, c1: 0x72, d1: 0x73, e1: 0x74, f1: 0x75, g1: 0x76, h1: 0x77,
 };
 
-export type Move = {
-  color: Color;
-  from: Square;
-  to: Square;
-  piece: PieceType;
-  captured?: PieceType;
-  promotion?: PieceType;
-  flags: string;
-  san: string;
-};
+export function toAlgebraic(square: number): Square {
+  const f = getFile(square);
+  const r = getRank(square);
+  return ("abcdefgh"[f] + "87654321"[r]) as Square;
+}
 
-export const DEFAULT_POSITION =
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+export function getRank(position: number) {
+  return position >> 4;
+}
+
+export function getFile(position: number) {
+  return position & 0x7;
+}
+
+export function isPositionValid(position: number) {
+  return (position & 0x88) == 0;
+}
+
+export function TODO(name: string) {
+  throw new Error("TODO: " + name);
+}

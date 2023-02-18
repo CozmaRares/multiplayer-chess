@@ -1,24 +1,29 @@
+import { GameBoard } from "./GameBoard";
 import {
   BISHOP,
   Color,
+  FLAGS,
+  isPositionValid,
   KNIGHT,
   Move,
   Ox88,
   PAWN,
   PieceType,
+  reverseColor,
+  toAlgebraic,
+  TODO,
   WHITE
-} from "./constants";
-import { GameBoard } from "./GameBoard";
+} from "./utils";
 
-abstract class Piece {
-  public readonly _color: Color;
-  public readonly _type: PieceType;
-  public readonly _position: number;
+export abstract class Piece {
+  public readonly color: Color;
+  public readonly type: PieceType;
+  public readonly position: number;
 
   constructor(color: Color, position: number, type: PieceType) {
-    this._type = type;
-    this._color = color;
-    this._position = position;
+    this.type = type;
+    this.color = color;
+    this.position = position;
   }
 
   abstract getMoves(board: GameBoard): Move[];
@@ -30,7 +35,31 @@ class OneIter {
     board: GameBoard,
     offsets: number[]
   ): Move[] {
-    throw new Error("Method not implemented.");
+    const moves: Move[] = [];
+
+    offsets.forEach(offset => {
+      const newPosition = piece.position + offset;
+
+      if (!isPositionValid(newPosition)) return;
+
+      if (board.isSquareEmpty(newPosition)) {
+        moves.push({
+          square: toAlgebraic(newPosition),
+          flags: FLAGS.NORMAL
+        });
+        return;
+      }
+
+      const pieceOnSquare = board.getPiece(newPosition);
+
+      if (pieceOnSquare.color != piece.color)
+        moves.push({
+          square: toAlgebraic(newPosition),
+          flags: FLAGS.CAPTURE
+        });
+    });
+
+    return moves;
   }
 }
 
@@ -52,14 +81,9 @@ export class Pawn extends Piece {
   static readonly OFFSETS = [16, 32];
   static readonly ATTACK_OFFSETS = [15, 17];
 
-  // prettier-ignore
   static readonly STARTING_RANKS = {
-    w: [
-      Ox88["a2"], Ox88["b2"], Ox88["c2"], Ox88["d2"], Ox88["e2"], Ox88["f2"], Ox88["g2"], Ox88["h2"]
-    ],
-    b: [
-      Ox88["a7"], Ox88["b7"], Ox88["c7"], Ox88["d7"], Ox88["e7"], Ox88["f7"], Ox88["g7"], Ox88["h7"]
-    ]
+    w: 2,
+    b: 7
   };
 
   constructor(color: Color, position: number) {
@@ -67,12 +91,13 @@ export class Pawn extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    throw new Error("Method not implemented.");
+    TODO("Pawn.getMoves");
+    return [] as Move[];
   }
 }
 
 export class Knight extends Piece {
-  static readonly OFFSETS = [-18, -33, -31, -14, 18, 33, 31, 14];
+  static readonly OFFSETS = [-33, -31, -18, -14, 14, 18, 31, 33];
 
   constructor(color: Color, position: number) {
     super(color, position, KNIGHT);
@@ -128,5 +153,9 @@ export class King extends Piece {
 
   getMoves(board: GameBoard): Move[] {
     return OneIter.computeMoves(this, board, Queen.OFFSETS);
+    // .filter(
+    // ({ square }) =>
+    //   !board.isSquareAttacked(Ox88[square], reverseColor(this.color))
+    // );
   }
 }
