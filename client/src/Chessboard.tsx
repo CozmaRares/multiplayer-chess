@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 import Show from "./components/Show";
+import useWindowDimensions from "./hooks/useWindowDimensions";
+import { DEFAULT_POSITION } from "./model/constants";
 
 import wb from "./assets/pieces/wb.png";
 import wk from "./assets/pieces/wk.png";
@@ -14,15 +16,11 @@ import bn from "./assets/pieces/bn.png";
 import bp from "./assets/pieces/bp.png";
 import bq from "./assets/pieces/bq.png";
 import br from "./assets/pieces/br.png";
-import useWindowDimensions from "./hooks/useWindowDimensions";
 
 const SQUARE_COLORS = {
   light: "#ECECD7",
   dark: "#4D6D92"
 };
-
-const DEFAULT_POSITION =
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 const MIN_SIZE = 480;
 const MAX_SIZE = 720;
