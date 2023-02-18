@@ -31,77 +31,73 @@ export abstract class Piece {
 
 // for pieces that need only one iteration / offset
 // king and knight
-class OneIter {
-  static computeMoves(
-    piece: Piece,
-    board: GameBoard,
-    offsets: number[]
-  ): Move[] {
-    const moves: Move[] = [];
+function computeMovesOneIter(
+  piece: Piece,
+  board: GameBoard,
+  offsets: number[]
+): Move[] {
+  const moves: Move[] = [];
 
-    offsets.forEach(offset => {
-      const newPosition = piece.position + offset;
+  offsets.forEach(offset => {
+    const newPosition = piece.position + offset;
 
-      if (!isPositionValid(newPosition)) return;
+    if (!isPositionValid(newPosition)) return;
 
-      if (board.isSquareEmpty(newPosition)) {
-        moves.push({
-          square: toAlgebraic(newPosition),
-          flags: FLAGS.NORMAL
-        });
-        return;
-      }
+    if (board.isSquareEmpty(newPosition)) {
+      moves.push({
+        square: toAlgebraic(newPosition),
+        flags: FLAGS.NORMAL
+      });
+      return;
+    }
 
-      const pieceOnSquare = board.getPiece(newPosition);
+    const pieceOnSquare = board.getPiece(newPosition);
 
-      if (pieceOnSquare.color != piece.color)
-        moves.push({
-          square: toAlgebraic(newPosition),
-          flags: FLAGS.CAPTURE
-        });
-    });
+    if (pieceOnSquare.color != piece.color)
+      moves.push({
+        square: toAlgebraic(newPosition),
+        flags: FLAGS.CAPTURE
+      });
+  });
 
-    return moves;
-  }
+  return moves;
 }
 
 // same thing but for bishop, rook and queen
-class MultipleIter {
-  static computeMoves(
-    piece: Piece,
-    board: GameBoard,
-    offsets: number[]
-  ): Move[] {
-    const moves: Move[] = [];
+function computeMovesMultipleIter(
+  piece: Piece,
+  board: GameBoard,
+  offsets: number[]
+): Move[] {
+  const moves: Move[] = [];
 
-    offsets.forEach(offset => {
-      let newPosition = piece.position + offset;
+  offsets.forEach(offset => {
+    let newPosition = piece.position + offset;
 
-      while (isPositionValid(newPosition)) {
-        if (!board.isSquareEmpty(newPosition)) {
-          const pieceOnSquare = board.getPiece(newPosition);
+    while (isPositionValid(newPosition)) {
+      if (!board.isSquareEmpty(newPosition)) {
+        const pieceOnSquare = board.getPiece(newPosition);
 
-          if (pieceOnSquare.color != piece.color) {
-            moves.push({
-              square: toAlgebraic(newPosition),
-              flags: FLAGS.CAPTURE
-            });
-          }
-
-          break;
+        if (pieceOnSquare.color != piece.color) {
+          moves.push({
+            square: toAlgebraic(newPosition),
+            flags: FLAGS.CAPTURE
+          });
         }
 
-        moves.push({
-          square: toAlgebraic(newPosition),
-          flags: FLAGS.NORMAL
-        });
-
-        newPosition += offset;
+        break;
       }
-    });
 
-    return moves;
-  }
+      moves.push({
+        square: toAlgebraic(newPosition),
+        flags: FLAGS.NORMAL
+      });
+
+      newPosition += offset;
+    }
+  });
+
+  return moves;
 }
 
 function getDirection(color: Color) {
@@ -135,7 +131,7 @@ export class Knight extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    return OneIter.computeMoves(this, board, Knight.OFFSETS);
+    return computeMovesOneIter(this, board, Knight.OFFSETS);
   }
 }
 
@@ -147,7 +143,7 @@ export class Bishop extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    return MultipleIter.computeMoves(this, board, Bishop.OFFSETS);
+    return computeMovesMultipleIter(this, board, Bishop.OFFSETS);
   }
 }
 
@@ -159,7 +155,7 @@ export class Rook extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    return MultipleIter.computeMoves(this, board, Rook.OFFSETS);
+    return computeMovesMultipleIter(this, board, Rook.OFFSETS);
   }
 }
 
@@ -171,7 +167,7 @@ export class Queen extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    return MultipleIter.computeMoves(this, board, Queen.OFFSETS);
+    return computeMovesMultipleIter(this, board, Queen.OFFSETS);
   }
 }
 
@@ -183,7 +179,7 @@ export class King extends Piece {
   }
 
   getMoves(board: GameBoard): Move[] {
-    return OneIter.computeMoves(this, board, Queen.OFFSETS).filter(
+    return computeMovesOneIter(this, board, Queen.OFFSETS).filter(
       ({ square }) =>
         !board.isSquareAttacked(Ox88[square], reverseColor(this.color))
     );
