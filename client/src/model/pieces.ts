@@ -3,15 +3,18 @@ import {
   BISHOP,
   Color,
   FLAGS,
+  getRank,
   isPositionValid,
+  KING,
   KNIGHT,
   Move,
   Ox88,
   PAWN,
   PieceType,
+  QUEEN,
   reverseColor,
+  ROOK,
   toAlgebraic,
-  TODO,
   WHITE
 } from "./utils";
 
@@ -39,23 +42,23 @@ function computeMovesOneIter(
   const moves: Move[] = [];
 
   offsets.forEach(offset => {
-    const newPosition = piece.position + offset;
+    const nextPosition = piece.position + offset;
 
-    if (!isPositionValid(newPosition)) return;
+    if (!isPositionValid(nextPosition)) return;
 
-    if (board.isSquareEmpty(newPosition)) {
+    if (board.isSquareEmpty(nextPosition)) {
       moves.push({
-        square: toAlgebraic(newPosition),
+        square: toAlgebraic(nextPosition),
         flags: FLAGS.NORMAL
       });
       return;
     }
 
-    const pieceOnSquare = board.getPiece(newPosition);
+    const pieceOnSquare = board.getPiece(nextPosition) as Piece;
 
     if (pieceOnSquare.color != piece.color)
       moves.push({
-        square: toAlgebraic(newPosition),
+        square: toAlgebraic(nextPosition),
         flags: FLAGS.CAPTURE
       });
   });
@@ -72,15 +75,15 @@ function computeMovesMultipleIter(
   const moves: Move[] = [];
 
   offsets.forEach(offset => {
-    let newPosition = piece.position + offset;
+    let nextPosition = piece.position + offset;
 
-    while (isPositionValid(newPosition)) {
-      if (!board.isSquareEmpty(newPosition)) {
-        const pieceOnSquare = board.getPiece(newPosition);
+    while (isPositionValid(nextPosition)) {
+      if (!board.isSquareEmpty(nextPosition)) {
+        const pieceOnSquare = board.getPiece(nextPosition) as Piece;
 
         if (pieceOnSquare.color != piece.color) {
           moves.push({
-            square: toAlgebraic(newPosition),
+            square: toAlgebraic(nextPosition),
             flags: FLAGS.CAPTURE
           });
         }
@@ -89,11 +92,11 @@ function computeMovesMultipleIter(
       }
 
       moves.push({
-        square: toAlgebraic(newPosition),
+        square: toAlgebraic(nextPosition),
         flags: FLAGS.NORMAL
       });
 
-      newPosition += offset;
+      nextPosition += offset;
     }
   });
 
@@ -108,18 +111,62 @@ export class Pawn extends Piece {
   static readonly OFFSETS = [16, 32];
   static readonly ATTACK_OFFSETS = [15, 17];
 
-  static readonly STARTING_RANKS = {
-    w: 2,
-    b: 7
+  static readonly STARTING_RANKS: Record<Color, number> = {
+    w: getRank(Ox88["a2"]),
+    b: getRank(Ox88["a7"])
   };
 
   constructor(color: Color, position: number) {
     super(color, position, PAWN);
   }
 
+  private _computeNextPosition(offset: number) {
+    return this.position + offset * getDirection(this.color);
+  }
+
   getMoves(board: GameBoard): Move[] {
-    TODO("Pawn.getMoves");
-    return [] as Move[];
+    const moves: Move[] = [];
+
+    if (board.isSquareEmpty(this._computeNextPosition(Pawn.OFFSETS[0]))) {
+      moves.push({
+        square: toAlgebraic(this._computeNextPosition(Pawn.OFFSETS[0])),
+        flags: FLAGS.NORMAL
+      });
+
+      if (
+        getRank(this.position) == Pawn.STARTING_RANKS[this.color] &&
+        board.isSquareEmpty(this._computeNextPosition(Pawn.OFFSETS[1]))
+      )
+        moves.push({
+          square: toAlgebraic(this._computeNextPosition(Pawn.OFFSETS[1])),
+          flags: FLAGS.NORMAL
+        });
+    }
+
+    Pawn.ATTACK_OFFSETS.forEach(offset => {
+      const nextPosition = this._computeNextPosition(offset);
+
+      if (board.isSquareEmpty(nextPosition)) {
+        if (board.isEpSquare(nextPosition))
+          moves.push({
+            square: toAlgebraic(nextPosition),
+            flags: FLAGS.CAPTURE
+          });
+
+        return;
+      }
+
+      const piece = board.getPiece(nextPosition) as Piece;
+
+      if (this.color != piece.color) {
+        moves.push({
+          square: toAlgebraic(nextPosition),
+          flags: FLAGS.CAPTURE
+        });
+      }
+    });
+
+    return moves;
   }
 }
 
@@ -151,7 +198,7 @@ export class Rook extends Piece {
   static readonly OFFSETS = [-16, -1, 1, 16];
 
   constructor(color: Color, position: number) {
-    super(color, position, BISHOP);
+    super(color, position, ROOK);
   }
 
   getMoves(board: GameBoard): Move[] {
@@ -163,7 +210,7 @@ export class Queen extends Piece {
   static readonly OFFSETS = [-17, -16, -15, -1, 1, 15, 16, 17];
 
   constructor(color: Color, position: number) {
-    super(color, position, BISHOP);
+    super(color, position, QUEEN);
   }
 
   getMoves(board: GameBoard): Move[] {
@@ -175,13 +222,15 @@ export class King extends Piece {
   static readonly OFFSETS = [-17, -16, -15, -1, 1, 15, 16, 17];
 
   constructor(color: Color, position: number) {
-    super(color, position, BISHOP);
+    super(color, position, KING);
   }
 
   getMoves(board: GameBoard): Move[] {
-    return computeMovesOneIter(this, board, Queen.OFFSETS).filter(
-      ({ square }) =>
-        !board.isSquareAttacked(Ox88[square], reverseColor(this.color))
-    );
+    return computeMovesOneIter(this, board, Queen.OFFSETS)
+      .filter(
+        ({ square }) =>
+          !board.isSquareAttacked(Ox88[square], reverseColor(this.color))
+      )
+      .concat(board.getCastlingRights(this.color, this.position));
   }
 }
