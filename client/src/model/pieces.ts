@@ -116,6 +116,11 @@ export class Pawn extends Piece {
     b: getRank(Ox88["a7"])
   };
 
+  static readonly PROMOTION_RANKS: Record<Color, number> = {
+    w: getRank(Ox88["a8"]),
+    b: getRank(Ox88["a1"])
+  };
+
   constructor(color: Color, position: number) {
     super(color, position, PAWN);
   }
@@ -130,7 +135,10 @@ export class Pawn extends Piece {
     if (board.isSquareEmpty(this._computeNextPosition(Pawn.OFFSETS[0]))) {
       moves.push({
         square: toAlgebraic(this._computeNextPosition(Pawn.OFFSETS[0])),
-        flags: FLAGS.NORMAL
+        flags:
+          getRank(this.position) == Pawn.PROMOTION_RANKS[this.color]
+            ? FLAGS.PROMOTION
+            : FLAGS.NORMAL
       });
 
       if (
@@ -139,7 +147,7 @@ export class Pawn extends Piece {
       )
         moves.push({
           square: toAlgebraic(this._computeNextPosition(Pawn.OFFSETS[1])),
-          flags: FLAGS.NORMAL
+          flags: FLAGS.PAWN_JUMP
         });
     }
 
@@ -225,6 +233,7 @@ export class King extends Piece {
     super(color, position, KING);
   }
 
+  // TODO: current implementation lets kings get near each other
   getMoves(board: GameBoard): Move[] {
     return computeMovesOneIter(this, board, Queen.OFFSETS)
       .filter(

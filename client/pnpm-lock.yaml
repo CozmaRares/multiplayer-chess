@@ -5,7 +5,6 @@ specifiers:
   '@types/react-dom': ^18.0.10
   '@vitejs/plugin-react-swc': ^3.0.0
   autoprefixer: ^10.4.13
-  chess.js: 1.0.0-beta.3
   postcss: ^8.4.21
   react: ^18.2.0
   react-dom: ^18.2.0
@@ -14,7 +13,6 @@ specifiers:
   vite: ^4.1.0
 
 dependencies:
-  chess.js: 1.0.0-beta.3
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
 
@@ -465,10 +463,6 @@ packages:
   /caniuse-lite/1.0.30001452:
     resolution: {integrity: sha512-Lkp0vFjMkBB3GTpLR8zk4NwW5EdRdnitwYJHDOOKIU85x4ckYCPQ+9WlVvSVClHxVReefkUMtWZH2l9KGlD51w==}
     dev: true
-
-  /chess.js/1.0.0-beta.3:
-    resolution: {integrity: sha512-zu8QVvP0BmMzrstlsrXL2LxdHfAkrtyNftVRaJXGI5mn2ZSsgTJujvZx5BVJsPMwBkRZ+omCdZkVyVLBlKn2HA==}
-    dev: false
 
   /chokidar/3.5.3:
     resolution: {integrity: sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==}
