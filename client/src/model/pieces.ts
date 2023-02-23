@@ -234,6 +234,7 @@ export class King extends Piece {
   }
 
   // TODO: current implementation lets kings get near each other
+  // TODO: handle check and checkmate
   getMoves(board: GameBoard): Move[] {
     return computeMovesOneIter(this, board, Queen.OFFSETS)
       .filter(

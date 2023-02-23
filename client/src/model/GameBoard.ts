@@ -31,11 +31,14 @@ export class GameBoard {
   readonly halfMoves: number;
   readonly fullMoves: number;
   readonly attacks: string[];
+  readonly kings: Record<Color, King | null>;
 
   constructor(fen = DEFAULT_POSITION) {
     this.fen = fen;
 
     this.board = new Array<Piece | null>(128).fill(null);
+
+    this.kings = { w: null, b: null };
 
     const fields = fen.split(/\s+/);
 
@@ -61,7 +64,7 @@ export class GameBoard {
 
       const color = piece < "a" ? WHITE : BLACK;
 
-      this.put(square, {
+      this._put(square, {
         type: piece.toLocaleLowerCase() as PieceType,
         color
       });
@@ -101,7 +104,10 @@ export class GameBoard {
     });
   }
 
-  put(square: number, { type, color }: { type: PieceType; color: Color }) {
+  private _put(
+    square: number,
+    { type, color }: { type: PieceType; color: Color }
+  ) {
     let p: Piece;
 
     switch (type) {

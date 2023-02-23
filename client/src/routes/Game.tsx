@@ -1,30 +1,35 @@
-import { useCallback, useMemo, useState } from "react";
-import Show from "./components/Show";
-import useWindowDimensions from "./hooks/useWindowDimensions";
-import { GameBoard } from "./model/GameBoard";
+import { useCallback, useEffect, useState } from "react";
+import { SOCKET_EVENTS } from "../../../server/src/socketEvents";
+import * as ListenerTypes from "../../../server/src/socketListenerArgTypes";
+import { GameBoard } from "../model/GameBoard";
+import { Piece } from "../model/pieces";
 import {
   Color,
   EMPTY,
+  getFile,
   getRank,
   isPositionValid,
   PieceType,
-  to0x88
-} from "./model/utils";
+  to0x88,
+  toAlgebraic
+} from "../model/utils";
+import Show from "../Show";
+import useSocket from "../useSocket";
+import useWindowDimensions from "../useWindowDimensions";
 
-import wb from "./assets/pieces/wb.png";
-import wk from "./assets/pieces/wk.png";
-import wn from "./assets/pieces/wn.png";
-import wp from "./assets/pieces/wp.png";
-import wq from "./assets/pieces/wq.png";
-import wr from "./assets/pieces/wr.png";
+import wb from "../assets/pieces/wb.png";
+import wk from "../assets/pieces/wk.png";
+import wn from "../assets/pieces/wn.png";
+import wp from "../assets/pieces/wp.png";
+import wq from "../assets/pieces/wq.png";
+import wr from "../assets/pieces/wr.png";
 
-import bb from "./assets/pieces/bb.png";
-import bk from "./assets/pieces/bk.png";
-import bn from "./assets/pieces/bn.png";
-import bp from "./assets/pieces/bp.png";
-import bq from "./assets/pieces/bq.png";
-import br from "./assets/pieces/br.png";
-import { Piece } from "./model/pieces";
+import bb from "../assets/pieces/bb.png";
+import bk from "../assets/pieces/bk.png";
+import bn from "../assets/pieces/bn.png";
+import bp from "../assets/pieces/bp.png";
+import bq from "../assets/pieces/bq.png";
+import br from "../assets/pieces/br.png";
 
 const SQUARE_COLORS = {
   light: "#ECECD7",
@@ -39,27 +44,46 @@ const PIECE_IMAGES: Record<Color, Record<string, string>> = {
   b: { p: bp, n: bn, b: bb, r: br, q: bq, k: bk }
 };
 
-// TODO: figure out why it doesn't render
-const ChessGame: React.FC<{
-  fen: string;
-}> = props => {
-  const board = useMemo(() => new GameBoard(props.fen), [props.fen]);
+const Game = () => {
+  const [fen, setFen] = useState<string | undefined>();
+  const socket = useSocket("ws://localhost:3000");
+  const board = new GameBoard(fen);
 
-  return <Chessboard board={board} />;
+  const makeMove = (move: ListenerTypes.MakeMove) => {
+    socket.emit(SOCKET_EVENTS.MAKE_MOVE, move);
+  };
+
+  useEffect(() => {
+    socket.on(SOCKET_EVENTS.CONNECTED_TO_SERVER, () => {
+      console.log("Connected to server", socket.id);
+    });
+
+    socket.on(SOCKET_EVENTS.SEND_MOVE, ({ fen }: ListenerTypes.SendMove) => {
+      setFen(fen);
+    });
+
+    return () => {
+      socket.offAny();
+    };
+  }, [socket]);
+
+  return <Chessboard board={board} onMove={makeMove} />;
 };
 
-// export default ChessGame;
+export default Game;
 
 const Chessboard: React.FC<{
   board: GameBoard;
   blackPerspective?: boolean;
   size?: number;
-  onMove?: unknown; // TODO: onMove non optional callback function
+  onMove: (move: ListenerTypes.MakeMove) => void; // TODO: onMove non optional callback function
 }> = props => {
-  const [selectedSquare, setSelectedSquare] = useState(-1);
+  const [selectedSquare, setSelectedSquare] = useState(EMPTY);
   const { windowHeight, windowWidth } = useWindowDimensions();
 
-  const pieces = props.board.board.filter((_, idx) => isPositionValid(idx));
+  const pieces = props.board.board
+    .map((piece, idx) => ({ piece, square: idx }))
+    .filter((_, idx) => isPositionValid(idx));
   const isReversed = props.blackPerspective ?? false;
 
   if (isReversed) pieces.reverse();
@@ -73,22 +97,26 @@ const Chessboard: React.FC<{
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      selectSquare(e, selectedSquare, setSelectedSquare, props.board);
+      selectSquare(
+        e,
+        selectedSquare,
+        setSelectedSquare,
+        props.board,
+        props.onMove
+      );
     },
     [selectedSquare, props.board.fen]
   );
 
-  const moves = new Array<boolean>(64).fill(false);
+  const moves = new Set<number>();
 
   if (selectedSquare != EMPTY) {
     const piece = props.board.getPiece(selectedSquare) as Piece;
 
     piece.getMoves(props.board).forEach(move => {
-      let idx = to0x88(move.square);
+      const square = to0x88(move.square);
 
-      idx -= 8 * (7 - getRank(idx));
-
-      moves[idx] = true;
+      moves.add(square);
     });
   }
 
@@ -100,42 +128,35 @@ const Chessboard: React.FC<{
       onPointerDown={onPointerDown}
       key={props.board.fen}
     >
-      {pieces.map((piece, idx) => (
+      {pieces.map(({ piece, square }, idx) => (
         <Tile
           key={idx}
           isReversed={isReversed}
           size={tileSize}
-          tileNumber={square++}
+          tilePosition={square}
           selected={(piece?.position ?? -2) == selectedSquare}
           pieceType={piece?.type}
           pieceColor={piece?.color}
-          piecePosition={piece?.position}
-          canMoveTo={moves[idx]}
+          canMoveTo={moves.has(square)}
         />
       ))}
     </div>
   );
 };
 
-export default Chessboard;
-
 const Tile: React.FC<{
   isReversed: boolean;
   size: number;
-  tileNumber: number;
+  tilePosition: number;
   selected: boolean;
   canMoveTo: boolean;
-  pieceType?: string;
-  pieceColor?: string;
-  piecePosition?: number;
+  pieceType?: PieceType;
+  pieceColor?: Color;
 }> = props => {
-  const rank = Math.floor(props.tileNumber / 8);
-  const file = props.tileNumber % 8;
+  const rank = getRank(props.tilePosition);
+  const file = getFile(props.tilePosition);
 
-  const color = props.pieceColor as Color | undefined;
-  const type = props.pieceType as PieceType | undefined;
-
-  const imgSrc = toImgSrc(color, type);
+  const imgSrc = toImgSrc(props.pieceColor, props.pieceType);
 
   return (
     <div
@@ -147,8 +168,9 @@ const Tile: React.FC<{
             : SQUARE_COLORS.light,
         width: `${props.size}px`
       }}
-      data-position={props.piecePosition}
+      data-position={props.tilePosition}
       data-move={props.canMoveTo}
+      data-has-piece={imgSrc != undefined}
     >
       <Show when={props.canMoveTo}>
         <Show when={imgSrc == undefined}>
@@ -223,13 +245,24 @@ function selectSquare(
   e: React.PointerEvent,
   selectedSquare: number,
   setSelectedSquare: React.Dispatch<React.SetStateAction<number>>,
-  board: GameBoard
+  board: GameBoard,
+  onMove: (move: ListenerTypes.MakeMove) => void
 ): void {
   const element = e.target as HTMLElement;
-
-  if (element.dataset.position == undefined) return setSelectedSquare(EMPTY);
-
   const square = parseInt(element.dataset.position as string);
+
+  if (selectedSquare != EMPTY) {
+    setSelectedSquare(EMPTY);
+
+    if (element.dataset.move == "false") return;
+
+    return onMove({
+      from: toAlgebraic(selectedSquare),
+      to: toAlgebraic(square)
+    });
+  }
+
+  if (element.dataset.hasPiece == "false") return setSelectedSquare(EMPTY);
 
   const piece = board.getPiece(square);
 
@@ -242,6 +275,4 @@ function selectSquare(
   if (moves.length == 0) return setSelectedSquare(EMPTY);
 
   setSelectedSquare(square);
-
-  // TODO: unfinished
 }
